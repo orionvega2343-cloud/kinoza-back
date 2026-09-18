@@ -29,3 +29,7 @@ func (s *WatchlistService) Update(ctx context.Context, item *domain.WatchlistIte
 func (s *WatchlistService) Delete(ctx context.Context, id uint) error {
 	return s.repo.Delete(ctx, id)
 }
+
+func (s *WatchlistService) List(ctx context.Context, userID uint) ([]domain.WatchlistItem, error) {
+	return s.repo.List(ctx, userID)
+}
