@@ -25,3 +25,7 @@ func (s *WatchlistService) Create(ctx context.Context, item *domain.WatchlistIte
 func (s *WatchlistService) Update(ctx context.Context, item *domain.WatchlistItem) error {
 	return s.repo.Update(ctx, item)
 }
+
+func (s *WatchlistService) Delete(ctx context.Context, id uint) error {
+	return s.repo.Delete(ctx, id)
+}
