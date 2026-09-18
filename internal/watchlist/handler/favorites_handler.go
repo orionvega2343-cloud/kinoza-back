@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"log/slog"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -46,4 +47,25 @@ func (h *WatchlistHandler) Create(c *gin.Context) {
 	})
 }
 
-// TODO: make an update func
+func (h *WatchlistHandler) Update(c *gin.Context) {
+	var req = dto.UpdateWatchlistRequest{}
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		slog.Error("failed to parse watchlist id", "error", err)
+		return
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		slog.Error("failed to bind json", "error", err)
+		return
+	}
+	item := &domain.WatchlistItem{
+		ID:     uint(id),
+		Status: req.Status,
+	}
+	if err := h.service.Update(c.Request.Context(), item); err != nil {
+		slog.Error("failed to update watchlist item", "error", err)
+		return
+	}
+}
+
+
