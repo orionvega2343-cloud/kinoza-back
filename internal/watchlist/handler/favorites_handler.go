@@ -68,4 +68,16 @@ func (h *WatchlistHandler) Update(c *gin.Context) {
 	}
 }
 
+func (h *WatchlistHandler) Delete(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 
+	if err != nil {
+		slog.Error("failed to parse watchlist id ", "error", err)
+		return
+	}
+
+	if err := h.service.Delete(c.Request.Context(), uint(id)); err != nil {
+		slog.Error("failed to delete watchlist item", "error", err)
+		return
+	}
+}
