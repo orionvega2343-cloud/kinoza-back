@@ -81,3 +81,21 @@ func (h *WatchlistHandler) Delete(c *gin.Context) {
 		return
 	}
 }
+
+func (h *WatchlistHandler) List(c *gin.Context) {
+	userID, err := strconv.ParseUint(c.Query("user_id"), 10, 64)
+
+	if err != nil {
+		slog.Error("failed to list watchlist items", "error", err)
+		return
+	}
+
+	items, err := h.service.List(c.Request.Context(), uint(userID))
+
+	if err != nil {
+		slog.Error("failed to list watchlist items", "error", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, items)
+}
