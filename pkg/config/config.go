@@ -22,6 +22,7 @@ type DbConfig struct {
 	Port     int    `yaml:"port" required:"true"`
 	User     string `yaml:"user" required:"true"`
 	Password string `env:"DB_PASS" required:"true"`
+	SslMode  string `yaml:"ssl_mode" required:"true"`
 }
 
 type ServerConfig struct {
