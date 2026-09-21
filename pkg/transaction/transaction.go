@@ -37,7 +37,7 @@ func (t *Transactor) Transaction(ctx context.Context, fn func(ctx context.Contex
 	}
 	trx, err := t.db.BeginTxx(ctx, nil)
 	if err != nil {
-		slog.Error("failed to start transaction", err)
+		slog.Error("failed to start transaction", "error", err)
 		return err
 	}
 	defer func() {

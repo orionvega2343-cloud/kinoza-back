@@ -37,7 +37,7 @@ func Connection(cfg config.Config) (*sqlx.DB, error) {
 	connStr := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s sslmode=%s", cfg.Db.Host, cfg.Db.Port, cfg.Db.User, cfg.Db.Name, cfg.Db.Password, cfg.Db.SslMode)
 	db, err := sqlx.Connect("postgres", connStr)
 	if err != nil {
-		slog.Error("failed connect to postgres", err)
+		slog.Error("failed connect to postgres", "error", err)
 		return nil, err
 	}
 	return db, nil
