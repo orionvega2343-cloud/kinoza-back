@@ -1,12 +1,13 @@
 package handler
 
 import (
-	"kinoza-back/internal/watchlist/domain"
-	"kinoza-back/internal/watchlist/dto"
-	"kinoza-back/internal/watchlist/service"
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	"kinoza-back/internal/watchlist/domain"
+	"kinoza-back/internal/watchlist/dto"
+	"kinoza-back/internal/watchlist/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,7 +23,7 @@ func NewWatchlistHandler(service *service.WatchlistService) *WatchlistHandler {
 }
 
 func (h *WatchlistHandler) Create(c *gin.Context) {
-	var req = dto.CreateWatchlistRequest{}
+	var req dto.CreateWatchlistRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		slog.Error("failed to bind json", "error", err)
@@ -43,9 +44,9 @@ func (h *WatchlistHandler) Create(c *gin.Context) {
 }
 
 func (h *WatchlistHandler) Update(c *gin.Context) {
-	var req = dto.UpdateWatchlistRequest{}
+	var req dto.UpdateWatchlistRequest
 
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		slog.Error("failed to parse watchlist id", "error", err)
 		return
@@ -57,7 +58,7 @@ func (h *WatchlistHandler) Update(c *gin.Context) {
 	}
 
 	item := &domain.WatchlistItem{
-		ID:     uint(id),
+		ID:     id,
 		Status: req.Status,
 	}
 
@@ -68,26 +69,22 @@ func (h *WatchlistHandler) Update(c *gin.Context) {
 }
 
 func (h *WatchlistHandler) Delete(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		slog.Error("failed to parse watchlist id", "error", err)
 		return
 	}
 
-	if err := h.service.Delete(c.Request.Context(), uint(id)); err != nil {
+	if err := h.service.Delete(c.Request.Context(), id); err != nil {
 		slog.Error("failed to delete watchlist item", "error", err)
 		return
 	}
 }
 
 func (h *WatchlistHandler) List(c *gin.Context) {
-	userID, err := strconv.ParseUint(c.Query("user_id"), 10, 64)
-	if err != nil {
-		slog.Error("failed to parse userID", "error", err)
-		return
-	}
+	userID := c.Query("user_id")
 
-	items, err := h.service.List(c.Request.Context(), uint(userID))
+	items, err := h.service.List(c.Request.Context(), userID)
 	if err != nil {
 		slog.Error("failed to list watchlist items", "error", err)
 		return

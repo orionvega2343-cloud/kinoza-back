@@ -11,7 +11,6 @@ type WatchlistService struct {
 	repo repository.WatchlistRepository
 }
 
-// Constructor
 func NewWatchlistService(repo repository.WatchlistRepository) *WatchlistService {
 	return &WatchlistService{
 		repo: repo,
@@ -26,10 +25,10 @@ func (s *WatchlistService) Update(ctx context.Context, item *domain.WatchlistIte
 	return s.repo.Update(ctx, item)
 }
 
-func (s *WatchlistService) Delete(ctx context.Context, id uint) error {
+func (s *WatchlistService) Delete(ctx context.Context, id int) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *WatchlistService) List(ctx context.Context, userID uint) ([]domain.WatchlistItem, error) {
+func (s *WatchlistService) List(ctx context.Context, userID string) ([]domain.WatchlistItem, error) {
 	return s.repo.List(ctx, userID)
 }
