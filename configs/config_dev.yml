@@ -1,0 +1,24 @@
+db:
+  name: kinoza
+  host: localhost
+  port: 5432
+  user: postgres
+  ssl_mode: disable
+
+server:
+  host: localhost
+  port: 8080
+
+redis:
+  addr: localhost:6379
+  password: ""
+  db: 0
+
+kafka:
+  brokers:
+    - localhost:9092
+  consumer_group: kinoza-back
+
+jwt:
+  access_ttl: 24h
+  refresh_ttl: 168h
