@@ -35,13 +35,13 @@ func Auth() gin.HandlerFunc {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
-			return []byte(os.Getenv("JWT_SECRET")), nil
+			return []byte(os.Getenv("JWT_KEY")), nil
 		})
-		c.Set("role", claims.Role)
 		if err != nil || !token.Valid {
 			c.AbortWithStatusJSON(401, gin.H{"error": "Invalid token"})
 			return
 		}
+		c.Set("role", claims.Role)
 		c.Set("user_id", claims.UserId)
 		c.Next()
 	}
