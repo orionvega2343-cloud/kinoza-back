@@ -17,28 +17,28 @@ type Config struct {
 }
 
 type DbConfig struct {
-	Name     string `yaml:"name" required:"true"`
-	Host     string `yaml:"host" required:"true"`
-	Port     int    `yaml:"port" required:"true"`
-	User     string `yaml:"user" required:"true"`
+	Name     string `yaml:"name" env-required:"true"`
+	Host     string `yaml:"host" env-required:"true"`
+	Port     int    `yaml:"port" env-required:"true"`
+	User     string `yaml:"user" env-required:"true"`
 	Password string `env:"DB_PASS" env-required:"true"`
-	SslMode  string `yaml:"ssl_mode" required:"true"`
+	SslMode  string `yaml:"ssl_mode" env-required:"true"`
 }
 
 type ServerConfig struct {
-	Host string `yaml:"host" required:"true"`
-	Port int    `yaml:"port" required:"true"`
+	Host string `yaml:"host" env-required:"true"`
+	Port int    `yaml:"port" env-required:"true"`
 }
 
 type Redis struct {
-	Addr     string `yaml:"addr" required:"true"`
-	Password string `yaml:"password" required:"true"`
-	DB       int    `yaml:"db" required:"true"`
+	Addr     string `yaml:"addr" env-required:"true"`
+	Password string `yaml:"password"`
+	DB       int    `yaml:"db"`
 }
 
 type Kafka struct {
-	Brokers       []string `yaml:"brokers" required:"true"`
-	ConsumerGroup string   `yaml:"consumer_group" required:"true"`
+	Brokers       []string `yaml:"brokers" env-required:"true"`
+	ConsumerGroup string   `yaml:"consumer_group" env-required:"true"`
 }
 
 type Jwt struct {
