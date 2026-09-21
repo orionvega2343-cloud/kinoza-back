@@ -21,7 +21,7 @@ type DbConfig struct {
 	Host     string `yaml:"host" required:"true"`
 	Port     int    `yaml:"port" required:"true"`
 	User     string `yaml:"user" required:"true"`
-	Password string `env:"DB_PASS" required:"true"`
+	Password string `env:"DB_PASS" env-required:"true"`
 	SslMode  string `yaml:"ssl_mode" required:"true"`
 }
 
@@ -37,12 +37,12 @@ type Redis struct {
 }
 
 type Kafka struct {
-	Brokers       string `yaml:"brokers" required:"true"`
-	ConsumerGroup string `yaml:"consumer_group" required:"true"`
+	Brokers       []string `yaml:"brokers" required:"true"`
+	ConsumerGroup string   `yaml:"consumer_group" required:"true"`
 }
 
 type Jwt struct {
-	Secret string `env:"JWT_KEY" required:"true"`
+	Secret string `env:"JWT_KEY" env-required:"true"`
 }
 
 // MustLoad - получает данные из .env, вызывает собранный конфиг,
