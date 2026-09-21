@@ -20,8 +20,8 @@ func Recovery() gin.HandlerFunc {
 					"stack", string(debug.Stack()),
 					"method", c.Request.Method,
 					"path", c.Request.URL.Path)
+				c.JSON(500, gin.H{})
 			}
-			c.JSON(500, gin.H{})
 		}()
 		c.Next()
 	}
