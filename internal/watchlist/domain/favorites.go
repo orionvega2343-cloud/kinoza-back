@@ -1,13 +1,11 @@
 package domain
 
-import (
-	"time"
-)
+import "time"
 
 type WatchlistItem struct {
-	ID      uint
-	UserID  uint
-	TitleID uint
-	Status  string
-	AddedAt time.Time
+	ID      int       `db:"id"`
+	UserID  string    `db:"user_id"`
+	TitleID int       `db:"title_id"`
+	Status  string    `db:"status"`
+	AddedAt time.Time `db:"added_at"`
 }
