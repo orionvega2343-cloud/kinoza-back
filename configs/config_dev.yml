@@ -18,3 +18,7 @@ kafka:
   brokers:
     - localhost:9092
   consumer_group: kinoza-back
+
+jwt:
+  access_ttl: 24h
+  refresh_ttl: 168h
