@@ -25,13 +25,11 @@ func Logger() gin.HandlerFunc {
 		method := c.Request.Method
 		statusCode := c.Writer.Status()
 
-		if query == "" {
+		if query != "" {
 			path = path + "?" + query
 		}
 
-		//TODO: завернуть контекст в хелпер-метод
-		ctx := c.Request.Context()
-
+		ctx := IDFromContext(c.Request.Context())
 		slog.Info("http",
 			"status", statusCode,
 			"latency", latency,
