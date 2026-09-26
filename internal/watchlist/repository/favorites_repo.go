@@ -69,3 +69,22 @@ func (r *watchlistRepo) Update(ctx context.Context, item *domain.WatchlistItem) 
 	}
 	return nil
 }
+
+func (r *watchlistRepo) Delete(ctx context.Context, id int) error {
+	query := `DELETE FROM watchlist_items WHERE id = $1`
+
+	result, err := r.getQuerier(ctx).ExecContext(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("watchlist repo delete: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("watchlist repo delete: %w", err)
+	}
+
+	if rows == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
+}
