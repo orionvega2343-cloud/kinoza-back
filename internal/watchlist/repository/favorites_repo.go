@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"kinoza-back/internal/watchlist/domain"
 	"kinoza-back/pkg/querier"
@@ -38,11 +39,33 @@ func (r *watchlistRepo) getQuerier(ctx context.Context) querier.Querier {
 }
 
 func (r *watchlistRepo) Create(ctx context.Context, item *domain.WatchlistItem) error {
-	query := `INSERT INTO watchlist_items(user_id, title_id, status) VALUES($1, $2, $3) ON CONFLICT (user_id, title_id) DO NOTHING RETURNING id, added_at`
+	query := `INSERT INTO watchlist_items(user_id, title_id, status) VALUES($1, $2, $3) ON CONFLICT (user_id, title_id) DO NORETURNING id, added_at`
 
 	err := r.getQuerier(ctx).GetContext(ctx, item, query, item.UserID, item.TitleID, item.Status)
-		if errors.Is(err , sql.ErrNoRows) {
-			return domain.ErrAlreadyExists
-		}
-		return err
+	if errors.Is(err, sql.ErrNoRows) {
+		return domain.ErrAlreadyExists
+	}
+	if err != nil {
+		return fmt.Errorf("watchlist repo create: %w", err)
+	}
+	return nil
+}
+
+func (r *watchlistRepo) Update(ctx context.Context, item *domain.WatchlistItem) error {
+	query := `UPDATE watchlist_items SET status = $1 WHERE id = $2`
+
+	result, err := r.getQuerier(ctx).ExecContext(ctx, query, item.Status, item.ID)
+	if err != nil {
+		return fmt.Errorf("watchlist repo update: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("watchlist repo update: %w", err)
+	}
+
+	if rows == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
 }
