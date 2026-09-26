@@ -39,7 +39,7 @@ func (r *watchlistRepo) getQuerier(ctx context.Context) querier.Querier {
 }
 
 func (r *watchlistRepo) Create(ctx context.Context, item *domain.WatchlistItem) error {
-	query := `INSERT INTO watchlist_items(user_id, title_id, status) VALUES($1, $2, $3) ON CONFLICT (user_id, title_id) DO NORETURNING id, added_at`
+	query := `INSERT INTO watchlist_items(user_id, title_id, status) VALUES($1, $2, $3) ON CONFLICT (user_id, title_id) DO NOTHING RETURNING id, added_at`
 
 	err := r.getQuerier(ctx).GetContext(ctx, item, query, item.UserID, item.TitleID, item.Status)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -87,4 +87,15 @@ func (r *watchlistRepo) Delete(ctx context.Context, id int) error {
 		return domain.ErrNotFound
 	}
 	return nil
+}
+
+func (r *watchlistRepo) List(ctx context.Context, userID string) ([]domain.WatchlistItem, error) {
+	query := `SELECT id, user_id, title_id, status, added_at FROM watchlist_items WHERE user_id = $1 ORDER BY added_at DESC`
+
+	items := []domain.WatchlistItem{}
+	err := r.getQuerier(ctx).SelectContext(ctx, &items, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("watchlist repo list: %w", err)
+	}
+	return items, err
 }
