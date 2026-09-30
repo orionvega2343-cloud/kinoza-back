@@ -4,14 +4,13 @@ import (
 	"context"
 
 	"kinoza-back/internal/watchlist/domain"
-	"kinoza-back/internal/watchlist/repository"
 )
 
 type WatchlistService struct {
-	repo repository.WatchlistRepository
+	repo domain.WatchlistRepository
 }
 
-func NewWatchlistService(repo repository.WatchlistRepository) *WatchlistService {
+func NewWatchlistService(repo domain.WatchlistRepository) *WatchlistService {
 	return &WatchlistService{
 		repo: repo,
 	}
