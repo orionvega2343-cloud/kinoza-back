@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"log/slog"
+	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/joho/godotenv"
@@ -42,7 +43,9 @@ type Kafka struct {
 }
 
 type Jwt struct {
-	Secret string `env:"JWT_KEY" env-required:"true"`
+	Secret     string        `env:"JWT_KEY" env-required:"true"`
+	AccessTTL  time.Duration `yaml:"access_ttl" env-required:"true"`
+	RefreshTTL time.Duration `yaml:"refresh_ttl" env-required:"true"`
 }
 
 // MustLoad - получает данные из .env, вызывает собранный конфиг,
