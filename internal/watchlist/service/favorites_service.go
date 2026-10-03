@@ -19,6 +19,8 @@ func NewWatchlistService(repo domain.WatchlistRepository, tx *transaction.Transa
 	}
 }
 
+var _ domain.WatchlistService = (*WatchlistService)(nil)
+
 func (s *WatchlistService) Create(ctx context.Context, item *domain.WatchlistItem) error {
 	return s.repo.Create(ctx, item)
 }

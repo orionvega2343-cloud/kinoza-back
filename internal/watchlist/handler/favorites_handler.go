@@ -7,16 +7,15 @@ import (
 
 	"kinoza-back/internal/watchlist/domain"
 	"kinoza-back/internal/watchlist/dto"
-	"kinoza-back/internal/watchlist/service"
 
 	"github.com/gin-gonic/gin"
 )
 
 type WatchlistHandler struct {
-	service *service.WatchlistService
+	service domain.WatchlistService
 }
 
-func NewWatchlistHandler(service *service.WatchlistService) *WatchlistHandler {
+func NewWatchlistHandler(service domain.WatchlistService) *WatchlistHandler {
 	return &WatchlistHandler{
 		service: service,
 	}
