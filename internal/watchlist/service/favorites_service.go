@@ -4,18 +4,22 @@ import (
 	"context"
 
 	"kinoza-back/internal/watchlist/domain"
-	"kinoza-back/internal/watchlist/repository"
+	"kinoza-back/pkg/transaction"
 )
 
 type WatchlistService struct {
-	repo repository.WatchlistRepository
+	repo domain.WatchlistRepository
+	tx   *transaction.Transactor
 }
 
-func NewWatchlistService(repo repository.WatchlistRepository) *WatchlistService {
+func NewWatchlistService(repo domain.WatchlistRepository, tx *transaction.Transactor) *WatchlistService {
 	return &WatchlistService{
 		repo: repo,
+		tx:   tx,
 	}
 }
+
+var _ domain.WatchlistService = (*WatchlistService)(nil)
 
 func (s *WatchlistService) Create(ctx context.Context, item *domain.WatchlistItem) error {
 	return s.repo.Create(ctx, item)
