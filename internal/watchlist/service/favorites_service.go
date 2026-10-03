@@ -4,36 +4,33 @@ import (
 	"context"
 
 	"kinoza-back/internal/watchlist/domain"
-	"kinoza-back/pkg/querier"
 	"kinoza-back/pkg/transaction"
 )
 
 type WatchlistService struct {
 	repo domain.WatchlistRepository
 	tx   *transaction.Transactor
-	db   querier.Querier
 }
 
-func NewWatchlistService(repo domain.WatchlistRepository, tx *transaction.Transactor, db querier.Querier) *WatchlistService {
+func NewWatchlistService(repo domain.WatchlistRepository, tx *transaction.Transactor) *WatchlistService {
 	return &WatchlistService{
 		repo: repo,
 		tx:   tx,
-		db:   db,
 	}
 }
 
 func (s *WatchlistService) Create(ctx context.Context, item *domain.WatchlistItem) error {
-	return s.repo.Create(ctx, s.db, item)
+	return s.repo.Create(ctx, item)
 }
 
 func (s *WatchlistService) Update(ctx context.Context, item *domain.WatchlistItem) error {
-	return s.repo.Update(ctx, s.db, item)
+	return s.repo.Update(ctx, item)
 }
 
 func (s *WatchlistService) Delete(ctx context.Context, id int) error {
-	return s.repo.Delete(ctx, s.db, id)
+	return s.repo.Delete(ctx, id)
 }
 
 func (s *WatchlistService) List(ctx context.Context, userID string) ([]domain.WatchlistItem, error) {
-	return s.repo.List(ctx, s.db, userID)
+	return s.repo.List(ctx, userID)
 }

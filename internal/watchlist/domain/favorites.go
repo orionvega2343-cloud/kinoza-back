@@ -2,7 +2,6 @@ package domain
 
 import (
 	"context"
-	"kinoza-back/pkg/querier"
 	"time"
 )
 
@@ -15,8 +14,8 @@ type WatchlistItem struct {
 }
 
 type WatchlistRepository interface {
-	Create(ctx context.Context, q querier.Querier, item *WatchlistItem) error
-	Update(ctx context.Context, q querier.Querier, item *WatchlistItem) error
-	Delete(ctx context.Context, q querier.Querier, id int) error
-	List(ctx context.Context, q querier.Querier, userID string) ([]WatchlistItem, error)
+	Create(ctx context.Context, item *WatchlistItem) error
+	Update(ctx context.Context, item *WatchlistItem) error
+	Delete(ctx context.Context, id int) error
+	List(ctx context.Context, userID string) ([]WatchlistItem, error)
 }
