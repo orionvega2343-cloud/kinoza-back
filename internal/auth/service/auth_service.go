@@ -30,7 +30,7 @@ func NewUserService(us domain.UserRepo, rt domain.RefreshTokens, secret string, 
 // (сырой пароль в структуре не попадает наружу), сохраняет нового
 // юзера через репозиторий
 func (s *UserServiceImpl) Register(ctx context.Context, u *domain.User) (*domain.User, error) {
-	if err := u.Validate(); err != nil {
+	if err := u.EmailWrapper(); err != nil {
 		return nil, logger.LogErr("failed to validate user", err)
 	}
 	hashedPw, err := bcrypt.GenerateFromPassword([]byte(u.PasswordHash), 12)
@@ -38,6 +38,7 @@ func (s *UserServiceImpl) Register(ctx context.Context, u *domain.User) (*domain
 		return nil, logger.LogErr("failed to hash password", err)
 	}
 	u.PasswordHash = string(hashedPw)
+	u.Role = "viewer"
 	user, err := s.us.CreateUser(ctx, u)
 	if err != nil {
 		return nil, logger.LogErr("failed to create user", err)
