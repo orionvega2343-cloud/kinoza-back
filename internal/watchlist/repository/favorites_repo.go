@@ -32,9 +32,9 @@ func (r *watchlistRepo) Create(ctx context.Context, item *domain.WatchlistItem) 
 }
 
 func (r *watchlistRepo) Update(ctx context.Context, item *domain.WatchlistItem) error {
-	query := `UPDATE watchlist_items SET status = $1 WHERE id = $2`
+	query := `UPDATE watchlist_items SET status = $1 WHERE id = $2 AND user_id = $3`
 
-	result, err := querier.GetQuerier(ctx, r.db).ExecContext(ctx, query, item.Status, item.ID)
+	result, err := querier.GetQuerier(ctx, r.db).ExecContext(ctx, query, item.Status, item.ID, item.UserID)
 	if err != nil {
 		return fmt.Errorf("watchlist repo update: %w", err)
 	}
@@ -50,10 +50,10 @@ func (r *watchlistRepo) Update(ctx context.Context, item *domain.WatchlistItem) 
 	return nil
 }
 
-func (r *watchlistRepo) Delete(ctx context.Context, id int) error {
-	query := `DELETE FROM watchlist_items WHERE id = $1`
+func (r *watchlistRepo) Delete(ctx context.Context, id int, userID string) error {
+	query := `DELETE FROM watchlist_items WHERE id = $1 AND user_id = $2`
 
-	result, err := querier.GetQuerier(ctx, r.db).ExecContext(ctx, query, id)
+	result, err := querier.GetQuerier(ctx, r.db).ExecContext(ctx, query, id, userID)
 	if err != nil {
 		return fmt.Errorf("watchlist repo delete: %w", err)
 	}

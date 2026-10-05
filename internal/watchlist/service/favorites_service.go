@@ -22,15 +22,21 @@ func NewWatchlistService(repo domain.WatchlistRepository, tx *transaction.Transa
 var _ domain.WatchlistService = (*WatchlistService)(nil)
 
 func (s *WatchlistService) Create(ctx context.Context, item *domain.WatchlistItem) error {
+	if !domain.IsValidStatus(item.Status) {
+		return domain.ErrInvalidStatus
+	}
 	return s.repo.Create(ctx, item)
 }
 
 func (s *WatchlistService) Update(ctx context.Context, item *domain.WatchlistItem) error {
+	if !domain.IsValidStatus(item.Status) {
+		return domain.ErrInvalidStatus
+	}
 	return s.repo.Update(ctx, item)
 }
 
-func (s *WatchlistService) Delete(ctx context.Context, id int) error {
-	return s.repo.Delete(ctx, id)
+func (s *WatchlistService) Delete(ctx context.Context, id int, userID string) error {
+	return s.repo.Delete(ctx, id, userID)
 }
 
 func (s *WatchlistService) List(ctx context.Context, userID string) ([]domain.WatchlistItem, error) {
