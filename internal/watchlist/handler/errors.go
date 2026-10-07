@@ -15,8 +15,6 @@ func mapServiceError(err error) (int, response.Error) {
 		return 409, response.Error{Message: err.Error(), Code: "ALREADY_EXISTS"}
 	case errors.Is(err, domain.ErrInvalidStatus):
 		return 400, response.Error{Message: err.Error(), Code: "INVALID_STATUS"}
-	case errors.Is(err, domain.ErrInvalidStatus):
-		return 400, response.Error{Message: err.Error(), Code: "INVALID_STATUS"}
 	default:
 		return 500, response.Error{Message: "internal server error", Code: "INTERNAL_ERROR"}
 	}
