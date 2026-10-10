@@ -43,9 +43,12 @@ func TestCreate(t *testing.T) {
 		wantErr  error
 		wantCall bool
 	}{
-		{name: "valid status", status: domain.StatusPlanned, wantErr: nil, wantCall: true},
+		{name: "status planned", status: domain.StatusPlanned, wantErr: nil, wantCall: true},
+		{name: "status watching", status: domain.StatusWatching, wantErr: nil, wantCall: true},
+		{name: "status watched", status: domain.StatusWatched, wantErr: nil, wantCall: true},
 		{name: "invalid status", status: "lol", wantErr: domain.ErrInvalidStatus, wantCall: false},
 		{name: "empty status", status: "", wantErr: domain.ErrInvalidStatus, wantCall: false},
+		{name: "uppercase status", status: "Planned", wantErr: domain.ErrInvalidStatus, wantCall: false},
 		{name: "already exists", status: domain.StatusPlanned, repoErr: domain.ErrAlreadyExists, wantErr: domain.ErrAlreadyExists, wantCall: true},
 	}
 
@@ -74,8 +77,12 @@ func TestUpdate(t *testing.T) {
 		wantErr  error
 		wantCall bool
 	}{
-		{name: "valid status", status: domain.StatusWatched, wantErr: nil, wantCall: true},
+		{name: "status planned", status: domain.StatusPlanned, wantErr: nil, wantCall: true},
+		{name: "status watching", status: domain.StatusWatching, wantErr: nil, wantCall: true},
+		{name: "status watched", status: domain.StatusWatched, wantErr: nil, wantCall: true},
 		{name: "invalid status", status: "lol", wantErr: domain.ErrInvalidStatus, wantCall: false},
+		{name: "empty status", status: "", wantErr: domain.ErrInvalidStatus, wantCall: false},
+		{name: "uppercase status", status: "Planned", wantErr: domain.ErrInvalidStatus, wantCall: false},
 		{name: "not found", status: domain.StatusWatched, repoErr: domain.ErrNotFound, wantErr: domain.ErrNotFound, wantCall: true},
 	}
 

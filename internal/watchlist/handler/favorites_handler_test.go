@@ -63,12 +63,13 @@ func TestCreate(t *testing.T) {
 		body       string
 		svcErr     error
 		wantStatus int
+		wantUserID string
 	}{
-		{name: "success", body: `{"title_id":1,"status":"planned"}`, wantStatus: http.StatusCreated},
+		{name: "success", body: `{"title_id":1,"status":"planned"}`, wantStatus: http.StatusCreated, wantUserID: "user-1"},
 		{name: "bad json", body: `{bad`, wantStatus: http.StatusBadRequest},
-		{name: "invalid status", body: `{"title_id":1,"status":"planned"}`, svcErr: domain.ErrInvalidStatus, wantStatus: http.StatusBadRequest},
-		{name: "already exists", body: `{"title_id":1,"status":"planned"}`, svcErr: domain.ErrAlreadyExists, wantStatus: http.StatusConflict},
-		{name: "db error", body: `{"title_id":1,"status":"planned"}`, svcErr: errDB, wantStatus: http.StatusInternalServerError},
+		{name: "invalid status", body: `{"title_id":1,"status":"planned"}`, svcErr: domain.ErrInvalidStatus, wantStatus: http.StatusBadRequest, wantUserID: "user-1"},
+		{name: "already exists", body: `{"title_id":1,"status":"planned"}`, svcErr: domain.ErrAlreadyExists, wantStatus: http.StatusConflict, wantUserID: "user-1"},
+		{name: "db error", body: `{"title_id":1,"status":"planned"}`, svcErr: errDB, wantStatus: http.StatusInternalServerError, wantUserID: "user-1"},
 	}
 
 	for _, tt := range tests {
@@ -84,14 +85,11 @@ func TestCreate(t *testing.T) {
 			if w.Code != tt.wantStatus {
 				t.Errorf("expected status %d, got %d", tt.wantStatus, w.Code)
 			}
-			// на кривой id/json хендлер до сервиса не доходит
-			if tt.wantStatus != http.StatusBadRequest || tt.svcErr != nil {
-				if svc.gotUserID != "user-1" {
-					t.Errorf("expected user_id user-1, got %q", svc.gotUserID)
-				}
+			if svc.gotUserID != tt.wantUserID {
+				t.Errorf("expected user_id %q, got %q", tt.wantUserID, svc.gotUserID)
 			}
-			if tt.wantStatus == http.StatusInternalServerError && strings.Contains(w.Body.String(), errDB.Error()) {
-				t.Errorf("db error text leaked to client: %s", w.Body.String())
+			if strings.Contains(w.Body.String(), errDB.Error()) {
+				t.Errorf("db error leaked: %s", w.Body.String())
 			}
 		})
 	}
@@ -104,12 +102,13 @@ func TestUpdate(t *testing.T) {
 		body       string
 		svcErr     error
 		wantStatus int
+		wantUserID string
 	}{
-		{name: "success", id: "1", body: `{"status":"watched"}`, wantStatus: http.StatusOK},
+		{name: "success", id: "1", body: `{"status":"watched"}`, wantStatus: http.StatusOK, wantUserID: "user-1"},
 		{name: "bad id", id: "abc", body: `{"status":"watched"}`, wantStatus: http.StatusBadRequest},
 		{name: "bad json", id: "1", body: `{bad`, wantStatus: http.StatusBadRequest},
-		{name: "not found", id: "1", body: `{"status":"watched"}`, svcErr: domain.ErrNotFound, wantStatus: http.StatusNotFound},
-		{name: "invalid status", id: "1", body: `{"status":"watched"}`, svcErr: domain.ErrInvalidStatus, wantStatus: http.StatusBadRequest},
+		{name: "not found", id: "1", body: `{"status":"watched"}`, svcErr: domain.ErrNotFound, wantStatus: http.StatusNotFound, wantUserID: "user-1"},
+		{name: "invalid status", id: "1", body: `{"status":"watched"}`, svcErr: domain.ErrInvalidStatus, wantStatus: http.StatusBadRequest, wantUserID: "user-1"},
 	}
 
 	for _, tt := range tests {
@@ -125,14 +124,11 @@ func TestUpdate(t *testing.T) {
 			if w.Code != tt.wantStatus {
 				t.Errorf("expected status %d, got %d", tt.wantStatus, w.Code)
 			}
-			// на кривой id/json хендлер до сервиса не доходит
-			if tt.wantStatus != http.StatusBadRequest || tt.svcErr != nil {
-				if svc.gotUserID != "user-1" {
-					t.Errorf("expected user_id user-1, got %q", svc.gotUserID)
-				}
+			if svc.gotUserID != tt.wantUserID {
+				t.Errorf("expected user_id %q, got %q", tt.wantUserID, svc.gotUserID)
 			}
-			if tt.wantStatus == http.StatusInternalServerError && strings.Contains(w.Body.String(), errDB.Error()) {
-				t.Errorf("db error text leaked to client: %s", w.Body.String())
+			if strings.Contains(w.Body.String(), errDB.Error()) {
+				t.Errorf("db error leaked: %s", w.Body.String())
 			}
 		})
 	}
@@ -144,11 +140,12 @@ func TestDelete(t *testing.T) {
 		id         string
 		svcErr     error
 		wantStatus int
+		wantUserID string
 	}{
-		{name: "success", id: "1", wantStatus: http.StatusOK},
+		{name: "success", id: "1", wantStatus: http.StatusOK, wantUserID: "user-1"},
 		{name: "bad id", id: "abc", wantStatus: http.StatusBadRequest},
-		{name: "not found", id: "1", svcErr: domain.ErrNotFound, wantStatus: http.StatusNotFound},
-		{name: "db error", id: "1", svcErr: errDB, wantStatus: http.StatusInternalServerError},
+		{name: "not found", id: "1", svcErr: domain.ErrNotFound, wantStatus: http.StatusNotFound, wantUserID: "user-1"},
+		{name: "db error", id: "1", svcErr: errDB, wantStatus: http.StatusInternalServerError, wantUserID: "user-1"},
 	}
 
 	for _, tt := range tests {
@@ -163,14 +160,11 @@ func TestDelete(t *testing.T) {
 			if w.Code != tt.wantStatus {
 				t.Errorf("expected status %d, got %d", tt.wantStatus, w.Code)
 			}
-			// на кривой id/json хендлер до сервиса не доходит
-			if tt.wantStatus != http.StatusBadRequest || tt.svcErr != nil {
-				if svc.gotUserID != "user-1" {
-					t.Errorf("expected user_id user-1, got %q", svc.gotUserID)
-				}
+			if svc.gotUserID != tt.wantUserID {
+				t.Errorf("expected user_id %q, got %q", tt.wantUserID, svc.gotUserID)
 			}
-			if tt.wantStatus == http.StatusInternalServerError && strings.Contains(w.Body.String(), errDB.Error()) {
-				t.Errorf("db error text leaked to client: %s", w.Body.String())
+			if strings.Contains(w.Body.String(), errDB.Error()) {
+				t.Errorf("db error leaked: %s", w.Body.String())
 			}
 		})
 	}
