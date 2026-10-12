@@ -1,1 +1,1 @@
-DROP TABLE watchlist_items;
+DROP TABLE IF EXISTS watchlist_items;

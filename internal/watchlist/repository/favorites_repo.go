@@ -32,7 +32,7 @@ func (r *watchlistRepo) Create(ctx context.Context, item *domain.WatchlistItem) 
 }
 
 func (r *watchlistRepo) Update(ctx context.Context, item *domain.WatchlistItem) error {
-	query := `UPDATE watchlist_items SET status = $1 WHERE id = $2 AND user_id = $3`
+	query := `UPDATE watchlist_items SET status = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3`
 
 	result, err := querier.GetQuerier(ctx, r.db).ExecContext(ctx, query, item.Status, item.ID, item.UserID)
 	if err != nil {

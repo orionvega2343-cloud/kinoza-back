@@ -33,7 +33,7 @@ watchlist/
 - `watching` - смотрю
 - `watched` - посмотрел
 
-Константы и проверка `IsValidStatus` лежат в `domain/favorites.go`. Проверка в сервисе на Create и Update, в базе ограничения пока нет.
+Константы и проверка `IsValidStatus` лежат в `domain/favorites.go`. Проверка в сервисе на Create и Update, плюс CHECK в базе.
 
 ## Эндпоинты
 
@@ -80,11 +80,10 @@ watchlist/
 go test ./internal/watchlist/...
 ```
 
-Тесты на сервис (с фейковым repo, без базы, тут же проверка статусов) и на хендлеры (httptest, с фейковым сервисом).
+Тесты на сервис (с фейковым repo, тут же проверка статусов), на хендлеры (httptest, с фейковым сервисом) и на repo (go-sqlmock, без реальной базы).
 
 ## TODO
 
 - подключить роуты в main.go
-- CHECK на status в миграции
 - FK `title_id REFERENCES titles(id)` когда появится каталог
 - `tx` в сервисе пока не используется, оставлен под будущие операции из нескольких запросов

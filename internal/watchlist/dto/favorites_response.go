@@ -2,7 +2,7 @@ package dto
 
 import "time"
 
-type CreateWatchlistResponse struct {
+type WatchlistItemResponse struct {
 	ID      int       `json:"id"`
 	TitleID int       `json:"title_id"`
 	Status  string    `json:"status"`
