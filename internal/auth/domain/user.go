@@ -31,11 +31,15 @@ func (u *User) ValidateRole() string {
 	return u.Role
 }
 
-func (u *User) Validate() error {
+func (u *User) EmailWrapper() error {
 	if validateEmail := u.ValidateEmail(); validateEmail == "" {
 		slog.Error("failed to validate email", "email", u.Email)
 		return ErrInvalidEmail
 	}
+	return nil
+}
+
+func (u *User) RoleWrapper() error {
 	if validateRole := u.ValidateRole(); validateRole == "" {
 		slog.Error("failed to validate role", "role", u.Role)
 		return ErrInvalidRole
