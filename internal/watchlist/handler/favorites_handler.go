@@ -31,6 +31,16 @@ func getUserID(c *gin.Context) (string, bool) {
 	return userID, true
 }
 
+func getTitleID(c *gin.Context) (int, bool) {
+	titleID, err := strconv.Atoi(c.Param("titleId"))
+
+	if err != nil || titleID <= 0 {
+		c.JSON(http.StatusBadRequest, response.Error{Message: "invalid title id", Code: "INVALID_TITLE_ID"})
+		return 0, false
+	}
+	return titleID, true
+}
+
 func (h *WatchlistHandler) Create(c *gin.Context) {
 	var req dto.CreateWatchlistRequest
 	userID, ok := getUserID(c)
@@ -39,12 +49,17 @@ func (h *WatchlistHandler) Create(c *gin.Context) {
 		return
 	}
 
+	titleID, ok := getTitleID(c)
+	if !ok {
+		return
+	}
+
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, response.Error{Message: "invalid id", Code: "FAILED_TO_BIND"})
+		c.JSON(400, response.Error{Message: err.Error(), Code: "FAILED_TO_BIND"})
 		return
 	}
 	item := &domain.WatchlistItem{
-		TitleID: req.TitleID,
+		TitleID: titleID,
 		Status:  req.Status,
 		UserID:  userID,
 	}
@@ -66,9 +81,8 @@ func (h *WatchlistHandler) Update(c *gin.Context) {
 		return
 	}
 
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil || id <= 0 {
-		c.JSON(400, response.Error{Message: "invalid id", Code: "INVALID_ID"})
+	titleID, ok := getTitleID(c)
+	if !ok {
 		return
 	}
 
@@ -78,9 +92,9 @@ func (h *WatchlistHandler) Update(c *gin.Context) {
 	}
 
 	item := &domain.WatchlistItem{
-		ID:     id,
-		Status: req.Status,
-		UserID: userID,
+		TitleID: titleID,
+		Status:  req.Status,
+		UserID:  userID,
 	}
 
 	if err := h.service.Update(c.Request.Context(), item); err != nil {
@@ -98,13 +112,12 @@ func (h *WatchlistHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil || id <= 0 {
-		c.JSON(400, response.Error{Message: "invalid id", Code: "INVALID_ID"})
+	titleID, ok := getTitleID(c)
+	if !ok {
 		return
 	}
 
-	if err := h.service.Delete(c.Request.Context(), id, userID); err != nil {
+	if err := h.service.Delete(c.Request.Context(), titleID, userID); err != nil {
 		status, body := mapServiceError(err)
 		c.JSON(status, body)
 		return

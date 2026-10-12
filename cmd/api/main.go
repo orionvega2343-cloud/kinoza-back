@@ -81,9 +81,9 @@ func main() {
 	watchlist := r.Group("/watchlist")
 	watchlist.Use(middlewares.Auth())
 	watchlist.GET("", watchlistH.List)
-	watchlist.POST("", watchlistH.Create)
-	watchlist.PATCH("/:id", watchlistH.Update)
-	watchlist.DELETE("/:id", watchlistH.Delete)
+	watchlist.POST("/:titleId", watchlistH.Create)
+	watchlist.PATCH("/:titleId", watchlistH.Update)
+	watchlist.DELETE("/:titleId", watchlistH.Delete)
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	if err := r.Run(addr); err != nil {

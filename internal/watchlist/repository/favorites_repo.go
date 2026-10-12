@@ -2,8 +2,6 @@ package repository
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 
 	"kinoza-back/internal/watchlist/domain"
@@ -19,12 +17,9 @@ func NewWatchlistRepository(db querier.Querier) domain.WatchlistRepository {
 }
 
 func (r *watchlistRepo) Create(ctx context.Context, item *domain.WatchlistItem) error {
-	query := `INSERT INTO watchlist_items(user_id, title_id, status) VALUES($1, $2, $3) ON CONFLICT (user_id, title_id) DO NOTHING RETURNING id, added_at`
+	query := `INSERT INTO watchlist_items(user_id, title_id, status) VALUES($1, $2, $3) ON CONFLICT (user_id, title_id) DO UPDATE SET status = EXCLUDED.status, updated_at = NOW() RETURNING id, added_at`
 
 	err := querier.GetQuerier(ctx, r.db).GetContext(ctx, item, query, item.UserID, item.TitleID, item.Status)
-	if errors.Is(err, sql.ErrNoRows) {
-		return domain.ErrAlreadyExists
-	}
 	if err != nil {
 		return fmt.Errorf("watchlist repo create: %w", err)
 	}
@@ -32,9 +27,9 @@ func (r *watchlistRepo) Create(ctx context.Context, item *domain.WatchlistItem) 
 }
 
 func (r *watchlistRepo) Update(ctx context.Context, item *domain.WatchlistItem) error {
-	query := `UPDATE watchlist_items SET status = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3`
+	query := `UPDATE watchlist_items SET status = $1, updated_at = NOW() WHERE user_id = $2 AND title_id = $3`
 
-	result, err := querier.GetQuerier(ctx, r.db).ExecContext(ctx, query, item.Status, item.ID, item.UserID)
+	result, err := querier.GetQuerier(ctx, r.db).ExecContext(ctx, query, item.Status, item.UserID, item.TitleID)
 	if err != nil {
 		return fmt.Errorf("watchlist repo update: %w", err)
 	}
@@ -50,10 +45,10 @@ func (r *watchlistRepo) Update(ctx context.Context, item *domain.WatchlistItem) 
 	return nil
 }
 
-func (r *watchlistRepo) Delete(ctx context.Context, id int, userID string) error {
-	query := `DELETE FROM watchlist_items WHERE id = $1 AND user_id = $2`
+func (r *watchlistRepo) Delete(ctx context.Context, titleID int, userID string) error {
+	query := `DELETE FROM watchlist_items WHERE user_id = $1 AND title_id = $2`
 
-	result, err := querier.GetQuerier(ctx, r.db).ExecContext(ctx, query, id, userID)
+	result, err := querier.GetQuerier(ctx, r.db).ExecContext(ctx, query, userID, titleID)
 	if err != nil {
 		return fmt.Errorf("watchlist repo delete: %w", err)
 	}

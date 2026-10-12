@@ -49,7 +49,6 @@ func TestCreate(t *testing.T) {
 		{name: "invalid status", status: "lol", wantErr: domain.ErrInvalidStatus, wantCall: false},
 		{name: "empty status", status: "", wantErr: domain.ErrInvalidStatus, wantCall: false},
 		{name: "uppercase status", status: "Planned", wantErr: domain.ErrInvalidStatus, wantCall: false},
-		{name: "already exists", status: domain.StatusPlanned, repoErr: domain.ErrAlreadyExists, wantErr: domain.ErrAlreadyExists, wantCall: true},
 	}
 
 	for _, tt := range tests {

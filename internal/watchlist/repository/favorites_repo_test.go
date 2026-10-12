@@ -33,7 +33,6 @@ func TestRepoCreate(t *testing.T) {
 		wantID  int
 	}{
 		{name: "success", rows: sqlmock.NewRows([]string{"id", "added_at"}).AddRow(7, time.Now()), wantErr: nil, wantID: 7},
-		{name: "already exists", rows: sqlmock.NewRows([]string{"id", "added_at"}), wantErr: domain.ErrAlreadyExists},
 		{name: "db error", dbErr: errDB, wantErr: errDB},
 	}
 
@@ -41,7 +40,7 @@ func TestRepoCreate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo, mock := setupMock(t)
 
-			q := mock.ExpectQuery(`INSERT INTO watchlist_items(.+)ON CONFLICT \(user_id, title_id\) DO NOTHING`).
+			q := mock.ExpectQuery(`INSERT INTO watchlist_items(.+)ON CONFLICT \(user_id, title_id\) DO UPDATE SET status = EXCLUDED.status, updated_at = NOW\(\)`).
 				WithArgs("user-1", 42, domain.StatusPlanned)
 			if tt.dbErr != nil {
 				q.WillReturnError(tt.dbErr)
@@ -81,15 +80,15 @@ func TestRepoUpdate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo, mock := setupMock(t)
 
-			e := mock.ExpectExec(`UPDATE watchlist_items SET status = \$1, updated_at = NOW\(\) WHERE id = \$2 AND user_id = \$3`).
-				WithArgs(domain.StatusWatched, 7, "user-1")
+			e := mock.ExpectExec(`UPDATE watchlist_items SET status = \$1, updated_at = NOW\(\) WHERE user_id = \$2 AND title_id = \$3`).
+				WithArgs(domain.StatusWatched, "user-1", 42)
 			if tt.dbErr != nil {
 				e.WillReturnError(tt.dbErr)
 			} else {
 				e.WillReturnResult(tt.result)
 			}
 
-			err := repo.Update(context.Background(), &domain.WatchlistItem{ID: 7, UserID: "user-1", Status: domain.StatusWatched})
+			err := repo.Update(context.Background(), &domain.WatchlistItem{TitleID: 42, UserID: "user-1", Status: domain.StatusWatched})
 
 			if !errors.Is(err, tt.wantErr) {
 				t.Errorf("expected %v, got %v", tt.wantErr, err)
@@ -117,15 +116,15 @@ func TestRepoDelete(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo, mock := setupMock(t)
 
-			e := mock.ExpectExec(`DELETE FROM watchlist_items WHERE id = \$1 AND user_id = \$2`).
-				WithArgs(7, "user-1")
+			e := mock.ExpectExec(`DELETE FROM watchlist_items WHERE user_id = \$1 AND title_id = \$2`).
+				WithArgs("user-1", 42)
 			if tt.dbErr != nil {
 				e.WillReturnError(tt.dbErr)
 			} else {
 				e.WillReturnResult(tt.result)
 			}
 
-			err := repo.Delete(context.Background(), 7, "user-1")
+			err := repo.Delete(context.Background(), 42, "user-1")
 
 			if !errors.Is(err, tt.wantErr) {
 				t.Errorf("expected %v, got %v", tt.wantErr, err)

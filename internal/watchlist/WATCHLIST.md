@@ -25,7 +25,7 @@ watchlist/
 | status | TEXT | статус, см. ниже |
 | added_at | TIMESTAMPTZ | когда добавили |
 
-На `(user_id, title_id)` стоит UNIQUE, один и тот же тайтл два раза добавить нельзя.
+На `(user_id, title_id)` стоит UNIQUE, повторный POST того же тайтла обновляет статус (upsert).
 
 ## Статусы
 
@@ -37,42 +37,39 @@ watchlist/
 
 ## Эндпоинты
 
-Роуты еще не подключены в main.go, пути ниже примерные. Все требуют авторизацию (`middlewares.Auth()`).
+Роуты подключены в `cmd/api/main.go`, вся группа под `middlewares.Auth()`.
 
 | метод | путь | что делает | ответ |
 |---|---|---|---|
-| POST | /watchlist | добавить тайтл | 201 + созданная запись |
+| POST | /watchlist/:titleId | добавить тайтл (если уже есть, обновить статус) | 201 + запись |
 | GET | /watchlist | список текущего юзера | 200 + массив |
-| PATCH | /watchlist/:id | поменять статус | 200 |
-| DELETE | /watchlist/:id | удалить запись | 200 |
+| PATCH | /watchlist/:titleId | поменять статус | 200 |
+| DELETE | /watchlist/:titleId | удалить тайтл из списка | 200 |
 
-Пример тела для POST:
+Тело для POST и PATCH одинаковое, title_id берется из пути:
 
 ```json
 {
-  "title_id": 42,
   "status": "planned"
 }
 ```
 
-Для PATCH только `{"status": "watched"}`.
-
-**Важно:** user_id никогда не берется из запроса (body/query), только из контекста после Auth (`c.GetString("user_id")`). Update и Delete в базе идут с `WHERE id = $1 AND user_id = $2`, так что чужую запись поменять или удалить нельзя, будет 404.
+**Важно:** user_id никогда не берется из запроса (body/query), только из контекста после Auth (`c.GetString("user_id")`). Update и Delete в базе идут с `WHERE user_id = $1 AND title_id = $2`, так что чужую запись поменять или удалить нельзя, будет 404.
 
 ## Ошибки
 
 | ошибка | статус | code |
 |---|---|---|
-| кривой json | 400 | FAILED_TO_BIND |
-| id не число | 400 | INVALID_ID |
+| кривой json / нет status | 400 | FAILED_TO_BIND |
+| titleId не число или <= 0 | 400 | INVALID_TITLE_ID |
 | ErrInvalidStatus | 400 | INVALID_STATUS |
 | ErrNotFound | 404 | NOT_FOUND |
-| ErrAlreadyExists | 409 | ALREADY_EXISTS |
+| нет user_id в контексте | 401 | UNAUTHORIZED |
 | все остальное | 500 | INTERNAL_ERROR |
 
 На 500 наружу уходит просто "internal server error", текст ошибки базы клиенту не отдаем.
 
-Дубль ловится через `ON CONFLICT (user_id, title_id) DO NOTHING RETURNING ...`: если ничего не вставилось, приходит `sql.ErrNoRows` и repo превращает его в `ErrAlreadyExists`.
+Повторное добавление того же тайтла не ошибка, а upsert: `ON CONFLICT (user_id, title_id) DO UPDATE SET status = EXCLUDED.status, updated_at = NOW()`. Статус обновляется, `added_at` остается старым.
 
 ## Тесты
 
@@ -84,6 +81,5 @@ go test ./internal/watchlist/...
 
 ## TODO
 
-- подключить роуты в main.go
 - FK `title_id REFERENCES titles(id)` когда появится каталог
 - `tx` в сервисе пока не используется, оставлен под будущие операции из нескольких запросов

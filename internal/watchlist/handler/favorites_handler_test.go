@@ -14,22 +14,26 @@ import (
 )
 
 type FakeService struct {
-	err       error
-	gotUserID string
+	err        error
+	gotUserID  string
+	gotTitleID int
 }
 
 func (f *FakeService) Create(ctx context.Context, item *domain.WatchlistItem) error {
 	f.gotUserID = item.UserID
+	f.gotTitleID = item.TitleID
 	return f.err
 }
 
 func (f *FakeService) Update(ctx context.Context, item *domain.WatchlistItem) error {
 	f.gotUserID = item.UserID
+	f.gotTitleID = item.TitleID
 	return f.err
 }
 
-func (f *FakeService) Delete(ctx context.Context, id int, userID string) error {
+func (f *FakeService) Delete(ctx context.Context, titleID int, userID string) error {
 	f.gotUserID = userID
+	f.gotTitleID = titleID
 	return f.err
 }
 
@@ -50,26 +54,29 @@ func setupRouter(svc domain.WatchlistService) *gin.Engine {
 		c.Set("user_id", "user-1")
 	})
 	h := NewWatchlistHandler(svc)
-	r.POST("/watchlist", h.Create)
+	r.POST("/watchlist/:titleId", h.Create)
 	r.GET("/watchlist", h.List)
-	r.PATCH("/watchlist/:id", h.Update)
-	r.DELETE("/watchlist/:id", h.Delete)
+	r.PATCH("/watchlist/:titleId", h.Update)
+	r.DELETE("/watchlist/:titleId", h.Delete)
 	return r
 }
 
 func TestCreate(t *testing.T) {
 	tests := []struct {
-		name       string
-		body       string
-		svcErr     error
-		wantStatus int
-		wantUserID string
+		name        string
+		titleID     string
+		body        string
+		svcErr      error
+		wantStatus  int
+		wantUserID  string
+		wantTitleID int
 	}{
-		{name: "success", body: `{"title_id":1,"status":"planned"}`, wantStatus: http.StatusCreated, wantUserID: "user-1"},
-		{name: "bad json", body: `{bad`, wantStatus: http.StatusBadRequest},
-		{name: "invalid status", body: `{"title_id":1,"status":"planned"}`, svcErr: domain.ErrInvalidStatus, wantStatus: http.StatusBadRequest, wantUserID: "user-1"},
-		{name: "already exists", body: `{"title_id":1,"status":"planned"}`, svcErr: domain.ErrAlreadyExists, wantStatus: http.StatusConflict, wantUserID: "user-1"},
-		{name: "db error", body: `{"title_id":1,"status":"planned"}`, svcErr: errDB, wantStatus: http.StatusInternalServerError, wantUserID: "user-1"},
+		{name: "success", titleID: "42", body: `{"status":"planned"}`, wantStatus: http.StatusCreated, wantUserID: "user-1", wantTitleID: 42},
+		{name: "bad title id", titleID: "abc", body: `{"status":"planned"}`, wantStatus: http.StatusBadRequest},
+		{name: "zero title id", titleID: "0", body: `{"status":"planned"}`, wantStatus: http.StatusBadRequest},
+		{name: "bad json", titleID: "42", body: `{bad`, wantStatus: http.StatusBadRequest},
+		{name: "invalid status", titleID: "42", body: `{"status":"planned"}`, svcErr: domain.ErrInvalidStatus, wantStatus: http.StatusBadRequest, wantUserID: "user-1", wantTitleID: 42},
+		{name: "db error", titleID: "42", body: `{"status":"planned"}`, svcErr: errDB, wantStatus: http.StatusInternalServerError, wantUserID: "user-1", wantTitleID: 42},
 	}
 
 	for _, tt := range tests {
@@ -78,7 +85,7 @@ func TestCreate(t *testing.T) {
 			r := setupRouter(svc)
 
 			w := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodPost, "/watchlist", strings.NewReader(tt.body))
+			req := httptest.NewRequest(http.MethodPost, "/watchlist/"+tt.titleID, strings.NewReader(tt.body))
 			req.Header.Set("Content-Type", "application/json")
 			r.ServeHTTP(w, req)
 
@@ -87,6 +94,9 @@ func TestCreate(t *testing.T) {
 			}
 			if svc.gotUserID != tt.wantUserID {
 				t.Errorf("expected user_id %q, got %q", tt.wantUserID, svc.gotUserID)
+			}
+			if svc.gotTitleID != tt.wantTitleID {
+				t.Errorf("expected title_id %d, got %d", tt.wantTitleID, svc.gotTitleID)
 			}
 			if strings.Contains(w.Body.String(), errDB.Error()) {
 				t.Errorf("db error leaked: %s", w.Body.String())
@@ -97,19 +107,20 @@ func TestCreate(t *testing.T) {
 
 func TestUpdate(t *testing.T) {
 	tests := []struct {
-		name       string
-		id         string
-		body       string
-		svcErr     error
-		wantStatus int
-		wantUserID string
+		name        string
+		titleID     string
+		body        string
+		svcErr      error
+		wantStatus  int
+		wantUserID  string
+		wantTitleID int
 	}{
-		{name: "success", id: "1", body: `{"status":"watched"}`, wantStatus: http.StatusOK, wantUserID: "user-1"},
-		{name: "bad id", id: "abc", body: `{"status":"watched"}`, wantStatus: http.StatusBadRequest},
-		{name: "zero id", id: "0", body: `{"status":"watched"}`, wantStatus: http.StatusBadRequest},
-		{name: "bad json", id: "1", body: `{bad`, wantStatus: http.StatusBadRequest},
-		{name: "not found", id: "1", body: `{"status":"watched"}`, svcErr: domain.ErrNotFound, wantStatus: http.StatusNotFound, wantUserID: "user-1"},
-		{name: "invalid status", id: "1", body: `{"status":"watched"}`, svcErr: domain.ErrInvalidStatus, wantStatus: http.StatusBadRequest, wantUserID: "user-1"},
+		{name: "success", titleID: "42", body: `{"status":"watched"}`, wantStatus: http.StatusOK, wantUserID: "user-1", wantTitleID: 42},
+		{name: "bad title id", titleID: "abc", body: `{"status":"watched"}`, wantStatus: http.StatusBadRequest},
+		{name: "zero title id", titleID: "0", body: `{"status":"watched"}`, wantStatus: http.StatusBadRequest},
+		{name: "bad json", titleID: "42", body: `{bad`, wantStatus: http.StatusBadRequest},
+		{name: "not found", titleID: "42", body: `{"status":"watched"}`, svcErr: domain.ErrNotFound, wantStatus: http.StatusNotFound, wantUserID: "user-1", wantTitleID: 42},
+		{name: "invalid status", titleID: "42", body: `{"status":"watched"}`, svcErr: domain.ErrInvalidStatus, wantStatus: http.StatusBadRequest, wantUserID: "user-1", wantTitleID: 42},
 	}
 
 	for _, tt := range tests {
@@ -118,7 +129,7 @@ func TestUpdate(t *testing.T) {
 			r := setupRouter(svc)
 
 			w := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodPatch, "/watchlist/"+tt.id, strings.NewReader(tt.body))
+			req := httptest.NewRequest(http.MethodPatch, "/watchlist/"+tt.titleID, strings.NewReader(tt.body))
 			req.Header.Set("Content-Type", "application/json")
 			r.ServeHTTP(w, req)
 
@@ -127,6 +138,9 @@ func TestUpdate(t *testing.T) {
 			}
 			if svc.gotUserID != tt.wantUserID {
 				t.Errorf("expected user_id %q, got %q", tt.wantUserID, svc.gotUserID)
+			}
+			if svc.gotTitleID != tt.wantTitleID {
+				t.Errorf("expected title_id %d, got %d", tt.wantTitleID, svc.gotTitleID)
 			}
 			if strings.Contains(w.Body.String(), errDB.Error()) {
 				t.Errorf("db error leaked: %s", w.Body.String())
@@ -137,17 +151,18 @@ func TestUpdate(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	tests := []struct {
-		name       string
-		id         string
-		svcErr     error
-		wantStatus int
-		wantUserID string
+		name        string
+		titleID     string
+		svcErr      error
+		wantStatus  int
+		wantUserID  string
+		wantTitleID int
 	}{
-		{name: "success", id: "1", wantStatus: http.StatusOK, wantUserID: "user-1"},
-		{name: "bad id", id: "abc", wantStatus: http.StatusBadRequest},
-		{name: "zero id", id: "0", wantStatus: http.StatusBadRequest},
-		{name: "not found", id: "1", svcErr: domain.ErrNotFound, wantStatus: http.StatusNotFound, wantUserID: "user-1"},
-		{name: "db error", id: "1", svcErr: errDB, wantStatus: http.StatusInternalServerError, wantUserID: "user-1"},
+		{name: "success", titleID: "42", wantStatus: http.StatusOK, wantUserID: "user-1", wantTitleID: 42},
+		{name: "bad title id", titleID: "abc", wantStatus: http.StatusBadRequest},
+		{name: "zero title id", titleID: "0", wantStatus: http.StatusBadRequest},
+		{name: "not found", titleID: "42", svcErr: domain.ErrNotFound, wantStatus: http.StatusNotFound, wantUserID: "user-1", wantTitleID: 42},
+		{name: "db error", titleID: "42", svcErr: errDB, wantStatus: http.StatusInternalServerError, wantUserID: "user-1", wantTitleID: 42},
 	}
 
 	for _, tt := range tests {
@@ -156,7 +171,7 @@ func TestDelete(t *testing.T) {
 			r := setupRouter(svc)
 
 			w := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodDelete, "/watchlist/"+tt.id, nil)
+			req := httptest.NewRequest(http.MethodDelete, "/watchlist/"+tt.titleID, nil)
 			r.ServeHTTP(w, req)
 
 			if w.Code != tt.wantStatus {
@@ -164,6 +179,9 @@ func TestDelete(t *testing.T) {
 			}
 			if svc.gotUserID != tt.wantUserID {
 				t.Errorf("expected user_id %q, got %q", tt.wantUserID, svc.gotUserID)
+			}
+			if svc.gotTitleID != tt.wantTitleID {
+				t.Errorf("expected title_id %d, got %d", tt.wantTitleID, svc.gotTitleID)
 			}
 			if strings.Contains(w.Body.String(), errDB.Error()) {
 				t.Errorf("db error leaked: %s", w.Body.String())
@@ -205,17 +223,17 @@ func TestNoUserID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h := NewWatchlistHandler(&FakeService{})
-	r.POST("/watchlist", h.Create)
+	r.POST("/watchlist/:titleId", h.Create)
 	r.GET("/watchlist", h.List)
-	r.PATCH("/watchlist/:id", h.Update)
-	r.DELETE("/watchlist/:id", h.Delete)
+	r.PATCH("/watchlist/:titleId", h.Update)
+	r.DELETE("/watchlist/:titleId", h.Delete)
 
 	tests := []struct {
 		name   string
 		method string
 		path   string
 	}{
-		{name: "create", method: http.MethodPost, path: "/watchlist"},
+		{name: "create", method: http.MethodPost, path: "/watchlist/1"},
 		{name: "list", method: http.MethodGet, path: "/watchlist"},
 		{name: "update", method: http.MethodPatch, path: "/watchlist/1"},
 		{name: "delete", method: http.MethodDelete, path: "/watchlist/1"},
