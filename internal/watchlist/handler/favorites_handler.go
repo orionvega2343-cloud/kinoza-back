@@ -1,94 +1,143 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 	"strconv"
 
 	"kinoza-back/internal/watchlist/domain"
 	"kinoza-back/internal/watchlist/dto"
-	"kinoza-back/internal/watchlist/service"
+	"kinoza-back/pkg/response"
 
 	"github.com/gin-gonic/gin"
 )
 
 type WatchlistHandler struct {
-	service *service.WatchlistService
+	service domain.WatchlistService
 }
 
-func NewWatchlistHandler(service *service.WatchlistService) *WatchlistHandler {
+func NewWatchlistHandler(service domain.WatchlistService) *WatchlistHandler {
 	return &WatchlistHandler{
 		service: service,
 	}
 }
 
+func getUserID(c *gin.Context) (string, bool) {
+	userID := c.GetString("user_id")
+
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, response.Error{Message: "unauthorized", Code: "UNAUTHORIZED"})
+		return "", false
+	}
+	return userID, true
+}
+
+func getTitleID(c *gin.Context) (int, bool) {
+	titleID, err := strconv.Atoi(c.Param("titleId"))
+
+	if err != nil || titleID <= 0 {
+		c.JSON(http.StatusBadRequest, response.Error{Message: "invalid title id", Code: "INVALID_TITLE_ID"})
+		return 0, false
+	}
+	return titleID, true
+}
+
 func (h *WatchlistHandler) Create(c *gin.Context) {
 	var req dto.CreateWatchlistRequest
+	userID, ok := getUserID(c)
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		slog.Error("failed to bind json", "error", err)
+	if !ok {
 		return
 	}
 
+	titleID, ok := getTitleID(c)
+	if !ok {
+		return
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, response.Error{Message: err.Error(), Code: "FAILED_TO_BIND"})
+		return
+	}
 	item := &domain.WatchlistItem{
-		TitleID: req.TitleID,
+		TitleID: titleID,
 		Status:  req.Status,
+		UserID:  userID,
 	}
 
 	if err := h.service.Create(c.Request.Context(), item); err != nil {
-		slog.Error("failed to create watchlist item", "error", err)
+		status, body := mapServiceError(err)
+		c.JSON(status, body)
 		return
 	}
 
-	c.JSON(http.StatusCreated, toCreateWatchlistResponse(item))
+	c.JSON(http.StatusCreated, toWatchlistItemResponse(item))
 }
 
 func (h *WatchlistHandler) Update(c *gin.Context) {
 	var req dto.UpdateWatchlistRequest
+	userID, ok := getUserID(c)
 
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		slog.Error("failed to parse watchlist id", "error", err)
+	if !ok {
+		return
+	}
+
+	titleID, ok := getTitleID(c)
+	if !ok {
 		return
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		slog.Error("failed to bind json", "error", err)
+		c.JSON(400, response.Error{Message: err.Error(), Code: "FAILED_TO_BIND"})
 		return
 	}
 
 	item := &domain.WatchlistItem{
-		ID:     id,
-		Status: req.Status,
+		TitleID: titleID,
+		Status:  req.Status,
+		UserID:  userID,
 	}
 
 	if err := h.service.Update(c.Request.Context(), item); err != nil {
-		slog.Error("failed to update watchlist item", "error", err)
+		status, body := mapServiceError(err)
+		c.JSON(status, body)
 		return
 	}
+	c.JSON(http.StatusOK, gin.H{})
 }
 
 func (h *WatchlistHandler) Delete(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		slog.Error("failed to parse watchlist id", "error", err)
+	userID, ok := getUserID(c)
+
+	if !ok {
 		return
 	}
 
-	if err := h.service.Delete(c.Request.Context(), id); err != nil {
-		slog.Error("failed to delete watchlist item", "error", err)
+	titleID, ok := getTitleID(c)
+	if !ok {
 		return
 	}
+
+	if err := h.service.Delete(c.Request.Context(), titleID, userID); err != nil {
+		status, body := mapServiceError(err)
+		c.JSON(status, body)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{})
 }
 
 func (h *WatchlistHandler) List(c *gin.Context) {
-	userID := c.Query("user_id")
+	userID, ok := getUserID(c)
 
-	items, err := h.service.List(c.Request.Context(), userID)
-	if err != nil {
-		slog.Error("failed to list watchlist items", "error", err)
+	if !ok {
 		return
 	}
 
-	c.JSON(http.StatusOK, items)
+	items, err := h.service.List(c.Request.Context(), userID)
+	if err != nil {
+		status, body := mapServiceError(err)
+		c.JSON(status, body)
+		return
+	}
+
+	c.JSON(http.StatusOK, toWatchlistListResponse(items))
 }
