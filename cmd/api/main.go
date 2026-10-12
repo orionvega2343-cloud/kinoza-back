@@ -8,6 +8,9 @@ import (
 	"kinoza-back/internal/auth/handler"
 	"kinoza-back/internal/auth/repository"
 	"kinoza-back/internal/auth/service"
+	watchlistHandler "kinoza-back/internal/watchlist/handler"
+	watchlistRepository "kinoza-back/internal/watchlist/repository"
+	watchlistService "kinoza-back/internal/watchlist/service"
 	"kinoza-back/pkg/config"
 	"kinoza-back/pkg/logger"
 	"kinoza-back/pkg/middlewares"
@@ -50,6 +53,10 @@ func main() {
 
 	userHandler := handler.NewUserHandler(userService, cookieTTL)
 
+	watchlistRepo := watchlistRepository.NewWatchlistRepository(db)
+	watchlistSvc := watchlistService.NewWatchlistService(watchlistRepo, tx)
+	watchlistH := watchlistHandler.NewWatchlistHandler(watchlistSvc)
+
 	r := gin.New()
 	r.Use(
 		middlewares.Recovery(),
@@ -70,6 +77,13 @@ func main() {
 	protected.GET("/users/:userId/tokens", userHandler.GetTokenList)
 	protected.DELETE("/tokens/:id", userHandler.RevokeToken)
 	protected.DELETE("/users/:userId/tokens", userHandler.RevokeAllTokens)
+
+	watchlist := r.Group("/watchlist")
+	watchlist.Use(middlewares.Auth())
+	watchlist.GET("", watchlistH.List)
+	watchlist.POST("", watchlistH.Create)
+	watchlist.PATCH("/:id", watchlistH.Update)
+	watchlist.DELETE("/:id", watchlistH.Delete)
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	if err := r.Run(addr); err != nil {
