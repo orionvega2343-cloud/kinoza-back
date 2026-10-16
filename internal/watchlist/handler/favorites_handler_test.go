@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -44,8 +43,6 @@ func (f *FakeService) List(ctx context.Context, userID string) ([]domain.Watchli
 
 var _ domain.WatchlistService = (*FakeService)(nil)
 
-var errDB = errors.New("db error")
-
 func setupRouter(svc domain.WatchlistService) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -76,7 +73,7 @@ func TestCreate(t *testing.T) {
 		{name: "zero title id", titleID: "0", body: `{"status":"planned"}`, wantStatus: http.StatusBadRequest},
 		{name: "bad json", titleID: "42", body: `{bad`, wantStatus: http.StatusBadRequest},
 		{name: "invalid status", titleID: "42", body: `{"status":"planned"}`, svcErr: domain.ErrInvalidStatus, wantStatus: http.StatusBadRequest, wantUserID: "user-1", wantTitleID: 42},
-		{name: "db error", titleID: "42", body: `{"status":"planned"}`, svcErr: errDB, wantStatus: http.StatusInternalServerError, wantUserID: "user-1", wantTitleID: 42},
+		{name: "db error", titleID: "42", body: `{"status":"planned"}`, svcErr: domain.ErrDB, wantStatus: http.StatusInternalServerError, wantUserID: "user-1", wantTitleID: 42},
 	}
 
 	for _, tt := range tests {
@@ -98,7 +95,7 @@ func TestCreate(t *testing.T) {
 			if svc.gotTitleID != tt.wantTitleID {
 				t.Errorf("expected title_id %d, got %d", tt.wantTitleID, svc.gotTitleID)
 			}
-			if strings.Contains(w.Body.String(), errDB.Error()) {
+			if strings.Contains(w.Body.String(), domain.ErrDB.Error()) {
 				t.Errorf("db error leaked: %s", w.Body.String())
 			}
 		})
@@ -142,7 +139,7 @@ func TestUpdate(t *testing.T) {
 			if svc.gotTitleID != tt.wantTitleID {
 				t.Errorf("expected title_id %d, got %d", tt.wantTitleID, svc.gotTitleID)
 			}
-			if strings.Contains(w.Body.String(), errDB.Error()) {
+			if strings.Contains(w.Body.String(), domain.ErrDB.Error()) {
 				t.Errorf("db error leaked: %s", w.Body.String())
 			}
 		})
@@ -162,7 +159,7 @@ func TestDelete(t *testing.T) {
 		{name: "bad title id", titleID: "abc", wantStatus: http.StatusBadRequest},
 		{name: "zero title id", titleID: "0", wantStatus: http.StatusBadRequest},
 		{name: "not found", titleID: "42", svcErr: domain.ErrNotFound, wantStatus: http.StatusNotFound, wantUserID: "user-1", wantTitleID: 42},
-		{name: "db error", titleID: "42", svcErr: errDB, wantStatus: http.StatusInternalServerError, wantUserID: "user-1", wantTitleID: 42},
+		{name: "db error", titleID: "42", svcErr: domain.ErrDB, wantStatus: http.StatusInternalServerError, wantUserID: "user-1", wantTitleID: 42},
 	}
 
 	for _, tt := range tests {
@@ -183,7 +180,7 @@ func TestDelete(t *testing.T) {
 			if svc.gotTitleID != tt.wantTitleID {
 				t.Errorf("expected title_id %d, got %d", tt.wantTitleID, svc.gotTitleID)
 			}
-			if strings.Contains(w.Body.String(), errDB.Error()) {
+			if strings.Contains(w.Body.String(), domain.ErrDB.Error()) {
 				t.Errorf("db error leaked: %s", w.Body.String())
 			}
 		})
@@ -197,7 +194,7 @@ func TestList(t *testing.T) {
 		wantStatus int
 	}{
 		{name: "success", wantStatus: http.StatusOK},
-		{name: "db error", svcErr: errDB, wantStatus: http.StatusInternalServerError},
+		{name: "db error", svcErr: domain.ErrDB, wantStatus: http.StatusInternalServerError},
 	}
 
 	for _, tt := range tests {
