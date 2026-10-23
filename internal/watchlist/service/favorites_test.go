@@ -2,38 +2,14 @@ package service
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"kinoza-back/internal/watchlist/domain"
+	"kinoza-back/internal/watchlist/mocks"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
-
-type fakeRepo struct {
-	call bool
-	err  error
-}
-
-func (f *fakeRepo) Create(ctx context.Context, item *domain.WatchlistItem) error {
-	f.call = true
-	return f.err
-}
-
-func (f *fakeRepo) Update(ctx context.Context, item *domain.WatchlistItem) error {
-	f.call = true
-	return f.err
-}
-
-func (f *fakeRepo) Delete(ctx context.Context, id int, userID string) error {
-	f.call = true
-	return f.err
-}
-
-func (f *fakeRepo) List(ctx context.Context, userID string) ([]domain.WatchlistItem, error) {
-	f.call = true
-	return nil, f.err
-}
-
-var errDB = errors.New("db error")
 
 func TestCreate(t *testing.T) {
 	tests := []struct {
@@ -49,21 +25,21 @@ func TestCreate(t *testing.T) {
 		{name: "invalid status", status: "lol", wantErr: domain.ErrInvalidStatus, wantCall: false},
 		{name: "empty status", status: "", wantErr: domain.ErrInvalidStatus, wantCall: false},
 		{name: "uppercase status", status: "Planned", wantErr: domain.ErrInvalidStatus, wantCall: false},
+		{name: "repo error", status: domain.StatusPlanned, repoErr: domain.ErrDB, wantErr: domain.ErrDB, wantCall: true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repo := &fakeRepo{err: tt.repoErr}
-			src := NewWatchlistService(repo, nil)
-
-			err := src.Create(context.Background(), &domain.WatchlistItem{Status: tt.status})
-
-			if !errors.Is(err, tt.wantErr) {
-				t.Errorf("expected %v, got %v", tt.wantErr, err)
+			repo := new(mocks.WatchlistRepoMock)
+			if tt.wantCall {
+				repo.On("Create", mock.Anything, mock.Anything).Return(tt.repoErr)
 			}
-			if repo.call != tt.wantCall {
-				t.Errorf("expected repo call %v, got %v", tt.wantCall, repo.call)
-			}
+			svc := NewWatchlistService(repo, nil)
+
+			err := svc.Create(context.Background(), &domain.WatchlistItem{Status: tt.status})
+
+			assert.ErrorIs(t, err, tt.wantErr)
+			repo.AssertExpectations(t)
 		})
 	}
 }
@@ -87,17 +63,16 @@ func TestUpdate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repo := &fakeRepo{err: tt.repoErr}
-			src := NewWatchlistService(repo, nil)
-
-			err := src.Update(context.Background(), &domain.WatchlistItem{ID: 1, Status: tt.status})
-
-			if !errors.Is(err, tt.wantErr) {
-				t.Errorf("expected %v, got %v", tt.wantErr, err)
+			repo := new(mocks.WatchlistRepoMock)
+			if tt.wantCall {
+				repo.On("Update", mock.Anything, mock.Anything).Return(tt.repoErr)
 			}
-			if repo.call != tt.wantCall {
-				t.Errorf("expected repo call %v, got %v", tt.wantCall, repo.call)
-			}
+			svc := NewWatchlistService(repo, nil)
+
+			err := svc.Update(context.Background(), &domain.WatchlistItem{ID: 1, Status: tt.status})
+
+			assert.ErrorIs(t, err, tt.wantErr)
+			repo.AssertExpectations(t)
 		})
 	}
 }
@@ -114,44 +89,43 @@ func TestDelete(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repo := &fakeRepo{err: tt.repoErr}
-			src := NewWatchlistService(repo, nil)
+			repo := new(mocks.WatchlistRepoMock)
+			repo.On("Delete", mock.Anything, 1, "user-1").Return(tt.repoErr)
+			svc := NewWatchlistService(repo, nil)
 
-			err := src.Delete(context.Background(), 1, "user-1")
+			err := svc.Delete(context.Background(), 1, "user-1")
 
-			if !errors.Is(err, tt.wantErr) {
-				t.Errorf("expected %v, got %v", tt.wantErr, err)
-			}
-			if !repo.call {
-				t.Error("repo should be called")
-			}
+			assert.ErrorIs(t, err, tt.wantErr)
+			repo.AssertExpectations(t)
 		})
 	}
 }
 
 func TestList(t *testing.T) {
+	items := []domain.WatchlistItem{{ID: 1, UserID: "user-1", TitleID: 42, Status: domain.StatusPlanned}}
+
 	tests := []struct {
-		name    string
-		repoErr error
-		wantErr error
+		name      string
+		repoItems []domain.WatchlistItem
+		repoErr   error
+		wantItems []domain.WatchlistItem
+		wantErr   error
 	}{
-		{name: "success", wantErr: nil},
-		{name: "repo error", repoErr: errDB, wantErr: errDB},
+		{name: "success", repoItems: items, wantItems: items, wantErr: nil},
+		{name: "repo error", repoErr: domain.ErrDB, wantErr: domain.ErrDB},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repo := &fakeRepo{err: tt.repoErr}
-			src := NewWatchlistService(repo, nil)
+			repo := new(mocks.WatchlistRepoMock)
+			repo.On("List", mock.Anything, "user-1").Return(tt.repoItems, tt.repoErr)
+			svc := NewWatchlistService(repo, nil)
 
-			_, err := src.List(context.Background(), "user-1")
+			got, err := svc.List(context.Background(), "user-1")
 
-			if !errors.Is(err, tt.wantErr) {
-				t.Errorf("expected %v, got %v", tt.wantErr, err)
-			}
-			if !repo.call {
-				t.Error("repo should be called")
-			}
+			assert.ErrorIs(t, err, tt.wantErr)
+			assert.Equal(t, tt.wantItems, got)
+			repo.AssertExpectations(t)
 		})
 	}
 }

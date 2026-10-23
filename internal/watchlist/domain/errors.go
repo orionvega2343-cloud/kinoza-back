@@ -7,4 +7,5 @@ import (
 var (
 	ErrNotFound      = errors.New("watchlist item not found")
 	ErrInvalidStatus = errors.New("watchlist item has an invalid status")
+	ErrDB            = errors.New("db error")
 )

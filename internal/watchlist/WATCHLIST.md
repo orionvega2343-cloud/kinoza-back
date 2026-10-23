@@ -9,6 +9,7 @@ watchlist/
   domain/      модель WatchlistItem, статусы, ошибки, интерфейсы repo и service
   dto/         запросы и ответы для хендлеров
   handler/     gin-хендлеры + mapServiceError (ошибка -> http статус)
+  mocks/       testify-моки repo и service для тестов
   repository/  работа с postgres
   service/     проверка статуса, дальше вызов repo
 ```
@@ -24,6 +25,7 @@ watchlist/
 | title_id | INTEGER | id фильма/сериала (FK пока нет, каталога еще нет) |
 | status | TEXT | статус, см. ниже |
 | added_at | TIMESTAMPTZ | когда добавили |
+| updated_at | TIMESTAMPTZ | когда последний раз меняли статус (в API пока не отдается) |
 
 На `(user_id, title_id)` стоит UNIQUE, повторный POST того же тайтла обновляет статус (upsert).
 
@@ -41,10 +43,21 @@ watchlist/
 
 | метод | путь | что делает | ответ |
 |---|---|---|---|
-| POST | /watchlist/:titleId | добавить тайтл (если уже есть, обновить статус) | 201 + запись |
-| GET | /watchlist | список текущего юзера | 200 + массив |
-| PATCH | /watchlist/:titleId | поменять статус | 200 |
-| DELETE | /watchlist/:titleId | удалить тайтл из списка | 200 |
+| POST | /watchlist/:titleId | добавить тайтл (если уже есть, обновить статус) | 201 + запись (и при обновлении тоже) |
+| GET | /watchlist | список текущего юзера, новые сверху (`ORDER BY added_at DESC`) | 200 + массив (пустой список = `[]`) |
+| PATCH | /watchlist/:titleId | поменять статус | 200 + `{}` |
+| DELETE | /watchlist/:titleId | удалить тайтл из списка | 200 + `{}` |
+
+Запись в ответе:
+
+```json
+{
+  "id": 1,
+  "title_id": 42,
+  "status": "planned",
+  "added_at": "2026-10-21T12:00:00Z"
+}
+```
 
 Тело для POST и PATCH одинаковое, title_id берется из пути:
 
@@ -77,9 +90,16 @@ watchlist/
 go test ./internal/watchlist/...
 ```
 
-Тесты на сервис (с фейковым repo, тут же проверка статусов), на хендлеры (httptest, с фейковым сервисом) и на repo (go-sqlmock, без реальной базы).
+Тесты только на сервис и хендлеры, моки на testify лежат в `mocks/`:
+
+- `service/favorites_test.go` - сервис с `WatchlistRepoMock`, тут же проверка статусов (валидные, пустой, в другом регистре) и проброс ошибок repo
+- `handler/favorites_handler_test.go` - хендлеры через httptest с `WatchlistServiceMock`: коды ответов, кривой titleId/json, 401 без user_id, что user_id берется из контекста, а не из query, и что текст ошибки базы не уходит клиенту
+
+Тестов на repo нет, SQL проверяется только руками на реальной базе.
 
 ## TODO
 
 - FK `title_id REFERENCES titles(id)` когда появится каталог
 - `tx` в сервисе пока не используется, оставлен под будущие операции из нескольких запросов
+- `updated_at` отдавать в ответе
+- `domain.ErrDB` пока используется только в тестах, repo возвращает обернутые ошибки базы
