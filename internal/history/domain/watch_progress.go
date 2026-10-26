@@ -5,7 +5,6 @@ import "time"
 const CompletedThreshold = 0.9
 
 type WatchProgress struct {
-	ID          int       `db:"id"`
 	UserID      string    `db:"user_id"`
 	TitleID     int       `db:"title_id"`
 	PositionSec int       `db:"position_sec"`
