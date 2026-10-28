@@ -83,12 +83,12 @@ go test ./internal/history/...
 Тесты только на сервис и хендлеры, моки на testify лежат в `mocks/`:
 
 - `service/watch_progress_service_test.go` - сервис с `WatchProgressRepoMock`: валидная позиция, ноль, отрицательная (repo не вызывается), проброс ошибок repo
+- `handler/watch_progress_handler_test.go` - хендлеры через httptest с `WatchProgressServiceMock`: коды ответов, кривой titleId/json, позиция 0 / нет позиции / отрицательная, 401 без user_id, что user_id берется из контекста, а не из query, и что текст ошибки базы не уходит клиенту
 
 Тестов на repo нет, SQL проверяется только руками на реальной базе.
 
 ## TODO
 
-- тесты хендлеров
 - FK `title_id REFERENCES titles(id)` когда появится каталог
 - событие `ProgressUpdated` в `watch.progress.events` (Kafka + outbox), по ТЗ это поздний этап
 - `domain.ErrDatabase` пока используется только в тестах, repo возвращает обернутые ошибки базы
