@@ -8,6 +8,9 @@ import (
 	"kinoza-back/internal/auth/handler"
 	"kinoza-back/internal/auth/repository"
 	"kinoza-back/internal/auth/service"
+	historyHandler "kinoza-back/internal/history/handler"
+	historyRepository "kinoza-back/internal/history/repository"
+	historyService "kinoza-back/internal/history/service"
 	watchlistHandler "kinoza-back/internal/watchlist/handler"
 	watchlistRepository "kinoza-back/internal/watchlist/repository"
 	watchlistService "kinoza-back/internal/watchlist/service"
@@ -57,6 +60,10 @@ func main() {
 	watchlistSvc := watchlistService.NewWatchlistService(watchlistRepo, tx)
 	watchlistH := watchlistHandler.NewWatchlistHandler(watchlistSvc)
 
+	historyRepo := historyRepository.NewWatchProgressRepository(db)
+	historySvc := historyService.NewWatchProgressService(historyRepo)
+	historyH := historyHandler.NewWatchProgressHandler(historySvc)
+
 	r := gin.New()
 	r.Use(
 		middlewares.Recovery(),
@@ -84,6 +91,11 @@ func main() {
 	watchlist.POST("/:titleId", watchlistH.Create)
 	watchlist.PATCH("/:titleId", watchlistH.Update)
 	watchlist.DELETE("/:titleId", watchlistH.Delete)
+
+	history := r.Group("/history")
+	history.Use(middlewares.Auth())
+	history.PUT("/:titleId/progress", historyH.Save)
+	history.GET("/continue-watching", historyH.ListInProgress)
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	if err := r.Run(addr); err != nil {
