@@ -10,7 +10,7 @@ import (
 func mapServiceError(err error) (int, response.Error) {
 	switch {
 	case errors.Is(err, domain.ErrInvalidPosition):
-		return 400, response.Error{Message: err.Error(), Code: "INVALID_POSITION"}
+		return 400, response.Error{Message: domain.ErrInvalidPosition.Error(), Code: "INVALID_POSITION"}
 	default:
 		return 500, response.Error{Message: "internal server error", Code: "INTERNAL_ERROR"}
 	}

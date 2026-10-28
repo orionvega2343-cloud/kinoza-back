@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -42,15 +43,16 @@ func TestSave(t *testing.T) {
 		wantStatus   int
 		wantCall     bool
 		wantPosition int
+		wantBody     string
 	}{
-		{name: "success", titleID: "42", body: `{"position_sec":1200}`, wantStatus: http.StatusOK, wantCall: true, wantPosition: 1200},
+		{name: "success", titleID: "42", body: `{"position_sec":1200}`, wantStatus: http.StatusOK, wantCall: true, wantPosition: 1200, wantBody: `"position_sec":1200`},
 		{name: "zero position", titleID: "42", body: `{"position_sec":0}`, wantStatus: http.StatusOK, wantCall: true, wantPosition: 0},
 		{name: "bad title id", titleID: "abc", body: `{"position_sec":1200}`, wantStatus: http.StatusBadRequest},
 		{name: "zero title id", titleID: "0", body: `{"position_sec":1200}`, wantStatus: http.StatusBadRequest},
 		{name: "bad json", titleID: "42", body: `{bad`, wantStatus: http.StatusBadRequest},
 		{name: "missing position", titleID: "42", body: `{}`, wantStatus: http.StatusBadRequest},
 		{name: "negative position", titleID: "42", body: `{"position_sec":-5}`, wantStatus: http.StatusBadRequest},
-		{name: "invalid position from service", titleID: "42", body: `{"position_sec":1200}`, svcErr: domain.ErrInvalidPosition, wantStatus: http.StatusBadRequest, wantCall: true, wantPosition: 1200},
+		{name: "invalid position from service", titleID: "42", body: `{"position_sec":1200}`, svcErr: fmt.Errorf("history service: Save, %w", domain.ErrInvalidPosition), wantStatus: http.StatusBadRequest, wantCall: true, wantPosition: 1200, wantBody: `"message":"position must not be negative"`},
 		{name: "db error", titleID: "42", body: `{"position_sec":1200}`, svcErr: domain.ErrDatabase, wantStatus: http.StatusInternalServerError, wantCall: true, wantPosition: 1200},
 	}
 	for _, tt := range tests {
@@ -67,6 +69,9 @@ func TestSave(t *testing.T) {
 			r.ServeHTTP(w, req)
 
 			assert.Equal(t, tt.wantStatus, w.Code)
+			if tt.wantBody != "" {
+				assert.Contains(t, w.Body.String(), tt.wantBody)
+			}
 			assert.NotContains(t, w.Body.String(), domain.ErrDatabase.Error())
 			svc.AssertExpectations(t)
 		})
@@ -78,8 +83,9 @@ func TestListInProgress(t *testing.T) {
 		name       string
 		svcErr     error
 		wantStatus int
+		wantBody   string
 	}{
-		{name: "success", wantStatus: http.StatusOK},
+		{name: "success", wantStatus: http.StatusOK, wantBody: "[]"},
 		{name: "db error", svcErr: domain.ErrDatabase, wantStatus: http.StatusInternalServerError},
 	}
 
@@ -94,6 +100,9 @@ func TestListInProgress(t *testing.T) {
 			r.ServeHTTP(w, req)
 
 			assert.Equal(t, tt.wantStatus, w.Code)
+			if tt.wantBody != "" {
+				assert.Equal(t, tt.wantBody, w.Body.String())
+			}
 			svc.AssertExpectations(t)
 		})
 	}

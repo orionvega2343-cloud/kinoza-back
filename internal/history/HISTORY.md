@@ -21,7 +21,7 @@ history/
 | поле | тип | что это |
 |---|---|---|
 | user_id | UUID | чей прогресс, FK на users, при удалении юзера записи тоже удаляются |
-| title_id | INTEGER | id фильма/сериала (FK пока нет, каталога еще нет) |
+| title_id | INTEGER | id фильма/сериала, FK нет: домены связаны только по id (ТЗ) |
 | position_sec | INTEGER | на какой секунде остановился, CHECK `>= 0` |
 | updated_at | TIMESTAMPTZ | когда последний раз сохраняли прогресс |
 
@@ -89,6 +89,5 @@ go test ./internal/history/...
 
 ## TODO
 
-- FK `title_id REFERENCES titles(id)` когда появится каталог
 - событие `ProgressUpdated` в `watch.progress.events` (Kafka + outbox), по ТЗ это поздний этап
 - `domain.ErrDatabase` пока используется только в тестах, repo возвращает обернутые ошибки базы
