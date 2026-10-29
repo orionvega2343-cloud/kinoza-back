@@ -17,8 +17,6 @@ import (
 
 var db *sqlx.DB
 
-// test main поднимает один контейнер postgres на все тесты пакета
-// накатывает миграции и закрывает все после прогона
 func TestMain(m *testing.M) {
 	os.Exit(run(m))
 }

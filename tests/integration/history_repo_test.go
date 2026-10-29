@@ -10,6 +10,7 @@ import (
 	"kinoza-back/internal/history/repository"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHistoryRepo_Upsert(t *testing.T) {
@@ -21,27 +22,26 @@ func TestHistoryRepo_Upsert(t *testing.T) {
 	t.Run("creates new record", func(t *testing.T) {
 		p := &domain.WatchProgress{UserID: userID, TitleID: 1, PositionSec: 100}
 
-		assert.Equal(t, nil, repo.Upsert(ctx, p))
-		assert.Equal(t, false, p.UpdatedAt.IsZero())
+		require.NoError(t, repo.Upsert(ctx, p))
+		assert.False(t, p.UpdatedAt.IsZero())
 
 		items, err := repo.ListInProgress(ctx, userID)
-		assert.Equal(t, nil, err)
-		if assert.Equal(t, 1, len(items)) {
-			assert.Equal(t, 100, items[0].PositionSec)
-		}
+		require.NoError(t, err)
+		require.Len(t, items, 1)
+		assert.Equal(t, 100, items[0].PositionSec)
 	})
 
 	t.Run("second upsert updates position, no duplicate", func(t *testing.T) {
 		first := &domain.WatchProgress{UserID: userID, TitleID: 2, PositionSec: 100}
-		assert.Equal(t, nil, repo.Upsert(ctx, first))
+		require.NoError(t, repo.Upsert(ctx, first))
 
 		second := &domain.WatchProgress{UserID: userID, TitleID: 2, PositionSec: 500}
-		assert.Equal(t, nil, repo.Upsert(ctx, second))
-		assert.Equal(t, false, second.UpdatedAt.Before(first.UpdatedAt))
+		require.NoError(t, repo.Upsert(ctx, second))
+		assert.False(t, second.UpdatedAt.Before(first.UpdatedAt))
 
 		var count, position int
-		assert.Equal(t, nil, db.Get(&count, `SELECT COUNT(*) FROM watch_progress WHERE user_id = $1 AND title_id = 2`, userID))
-		assert.Equal(t, nil, db.Get(&position, `SELECT position_sec FROM watch_progress WHERE user_id = $1 AND title_id = 2`, userID))
+		require.NoError(t, db.Get(&count, `SELECT COUNT(*) FROM watch_progress WHERE user_id = $1 AND title_id = 2`, userID))
+		require.NoError(t, db.Get(&position, `SELECT position_sec FROM watch_progress WHERE user_id = $1 AND title_id = 2`, userID))
 		assert.Equal(t, 1, count)
 		assert.Equal(t, 500, position)
 	})
@@ -49,13 +49,13 @@ func TestHistoryRepo_Upsert(t *testing.T) {
 	t.Run("negative position rejected by CHECK", func(t *testing.T) {
 		p := &domain.WatchProgress{UserID: userID, TitleID: 3, PositionSec: -1}
 
-		assert.NotEqual(t, nil, repo.Upsert(ctx, p))
+		assert.Error(t, repo.Upsert(ctx, p))
 	})
 
 	t.Run("unknown user rejected by FK", func(t *testing.T) {
 		p := &domain.WatchProgress{UserID: "00000000-0000-0000-0000-000000000000", TitleID: 1, PositionSec: 10}
 
-		assert.NotEqual(t, nil, repo.Upsert(ctx, p))
+		assert.Error(t, repo.Upsert(ctx, p))
 	})
 }
 
@@ -69,24 +69,24 @@ func TestHistoryRepo_ListInProgress(t *testing.T) {
 	t.Run("empty list is not nil", func(t *testing.T) {
 		items, err := repo.ListInProgress(ctx, userID)
 
-		assert.Equal(t, nil, err)
-		assert.Equal(t, []domain.WatchProgress{}, items)
+		require.NoError(t, err)
+		assert.NotNil(t, items)
+		assert.Empty(t, items)
 	})
 
 	t.Run("only own records, last watched first", func(t *testing.T) {
-		assert.Equal(t, nil, repo.Upsert(ctx, &domain.WatchProgress{UserID: userID, TitleID: 1, PositionSec: 10}))
-		assert.Equal(t, nil, repo.Upsert(ctx, &domain.WatchProgress{UserID: userID, TitleID: 2, PositionSec: 20}))
-		assert.Equal(t, nil, repo.Upsert(ctx, &domain.WatchProgress{UserID: otherID, TitleID: 3, PositionSec: 30}))
+		require.NoError(t, repo.Upsert(ctx, &domain.WatchProgress{UserID: userID, TitleID: 1, PositionSec: 10}))
+		require.NoError(t, repo.Upsert(ctx, &domain.WatchProgress{UserID: userID, TitleID: 2, PositionSec: 20}))
+		require.NoError(t, repo.Upsert(ctx, &domain.WatchProgress{UserID: otherID, TitleID: 3, PositionSec: 30}))
 		// тайтл 1 пересмотрели последним, он должен подняться наверх
-		assert.Equal(t, nil, repo.Upsert(ctx, &domain.WatchProgress{UserID: userID, TitleID: 1, PositionSec: 15}))
+		require.NoError(t, repo.Upsert(ctx, &domain.WatchProgress{UserID: userID, TitleID: 1, PositionSec: 15}))
 
 		items, err := repo.ListInProgress(ctx, userID)
-		assert.Equal(t, nil, err)
-		if assert.Equal(t, 2, len(items)) {
-			assert.Equal(t, 1, items[0].TitleID)
-			assert.Equal(t, 15, items[0].PositionSec)
-			assert.Equal(t, 2, items[1].TitleID)
-		}
+		require.NoError(t, err)
+		require.Len(t, items, 2)
+		assert.Equal(t, 1, items[0].TitleID)
+		assert.Equal(t, 15, items[0].PositionSec)
+		assert.Equal(t, 2, items[1].TitleID)
 		for _, item := range items {
 			assert.Equal(t, userID, item.UserID)
 		}
@@ -94,10 +94,10 @@ func TestHistoryRepo_ListInProgress(t *testing.T) {
 
 	t.Run("user deleted, progress deleted by cascade", func(t *testing.T) {
 		_, err := db.Exec(`DELETE FROM users WHERE id = $1`, userID)
-		assert.Equal(t, nil, err)
+		require.NoError(t, err)
 
 		items, err := repo.ListInProgress(ctx, userID)
-		assert.Equal(t, nil, err)
-		assert.Equal(t, 0, len(items))
+		require.NoError(t, err)
+		assert.Empty(t, items)
 	})
 }
