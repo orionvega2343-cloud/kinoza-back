@@ -13,7 +13,7 @@ import (
 func resetDB(t *testing.T) {
 	t.Helper()
 
-	_, err := db.Exec(`TRUNCATE users, refresh_tokens, watchlist_items, watch_progress RESTART IDENTITY CASCADE`)
+	_, err := db.Exec(`TRUNCATE users, refresh_tokens, watchlist_items, watch_progress, friend_requests, friendships RESTART IDENTITY CASCADE`)
 	require.NoError(t, err)
 }
 
